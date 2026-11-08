@@ -1,0 +1,303 @@
+-- [[ The Strongest Battlegrounds Mobile Hub ]] --
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local VirtualUser = game:GetService("VirtualUser")
+local Lighting = game:GetService("Lighting")
+local Workspace = game:GetService("Workspace")
+
+local LocalPlayer = Players.LocalPlayer
+local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
+
+-- ป้องกันรันซ้ำ
+if PlayerGui:FindFirstChild("TSBMobileHub") then
+    PlayerGui.TSBMobileHub:Destroy()
+end
+
+-- สร้าง ScreenGui
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "TSBMobileHub"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.Parent = PlayerGui
+
+-- ปุ่มเปิด/ปิด เมนูหลัก (Floating Button)
+local ToggleBtn = Instance.new("TextButton")
+ToggleBtn.Size = UDim2.new(0, 50, 0, 50)
+ToggleBtn.Position = UDim2.new(0, 20, 0, 100)
+ToggleBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+ToggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+ToggleBtn.Text = "MENU"
+ToggleBtn.TextSize = 14
+ToggleBtn.Font = Enum.Font.SourceSansBold
+ToggleBtn.Parent = ScreenGui
+ToggleBtn.Active = true
+ToggleBtn.Draggable = true
+Instance.new("UICorner", ToggleBtn).CornerRadius = UDim.new(1, 0)
+
+-- กรอบเมนูหลัก
+local MainFrame = Instance.new("Frame")
+MainFrame.Size = UDim2.new(0, 300, 0, 420)
+MainFrame.Position = UDim2.new(0.5, -150, 0.5, -210)
+MainFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+MainFrame.Visible = false
+MainFrame.Active = true
+MainFrame.Draggable = true
+MainFrame.Parent = ScreenGui
+Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 10)
+
+ToggleBtn.MouseButton1Click:Connect(function()
+    MainFrame.Visible = not MainFrame.Visible
+end)
+
+-- หัวข้อเมนู
+local Title = Instance.new("TextLabel")
+Title.Size = UDim2.new(1, 0, 0, 40)
+Title.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.Text = "TSB MOBILE HUB"
+Title.TextSize = 16
+Title.Font = Enum.Font.SourceSansBold
+Title.Parent = MainFrame
+Instance.new("UICorner", Title).CornerRadius = UDim.new(0, 10)
+
+-- ScrollingFrame สำหรับใส่ฟังก์ชันเยอะๆ
+local Scroll = Instance.new("ScrollingFrame")
+Scroll.Size = UDim2.new(1, -10, 1, -50)
+Scroll.Position = UDim2.new(0, 5, 0, 45)
+Scroll.BackgroundTransparency = 1
+Scroll.CanvasSize = UDim2.new(0, 0, 0, 650)
+Scroll.ScrollBarThickness = 4
+Scroll.Parent = MainFrame
+
+local UIList = Instance.new("UIListLayout")
+UIList.Padding = UDim.new(0, 8)
+UIList.HorizontalAlignment = Enum.HorizontalAlignment.Center
+UIList.Parent = Scroll
+
+-- ฟังก์ชันสร้างปุ่ม Toggle
+local function createToggle(name, callback)
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(0, 275, 0, 40)
+    btn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    btn.Text = name .. " [OFF]"
+    btn.TextSize = 14
+    btn.Font = Enum.Font.SourceSansBold
+    btn.Parent = Scroll
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6)
+    
+    local state = false
+    btn.MouseButton1Click:Connect(function()
+        state = not state
+        if state then
+            btn.BackgroundColor3 = Color3.fromRGB(0, 170, 0)
+            btn.Text = name .. " [ON]"
+        else
+            btn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+            btn.Text = name .. " [OFF]"
+        end
+        callback(state)
+    end)
+end
+
+-- ฟังก์ชันสร้างช่องใส่ค่า (Slider / Textbox สำหรับปรับค่าความเร็ว/กระโดด)
+local function createInput(name, defaultVal, callback)
+    local frame = Instance.new("Frame")
+    frame.Size = UDim2.new(0, 275, 0, 50)
+    frame.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+    frame.Parent = Scroll
+    Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 6)
+    
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(0.6, 0, 1, 0)
+    label.BackgroundTransparency = 1
+    label.TextColor3 = Color3.fromRGB(255, 255, 255)
+    label.Text = "  " .. name
+    label.TextXAlignment = Enum.TextXAlignment.Left
+    label.TextSize = 14
+    label.Font = Enum.Font.SourceSansBold
+    label.Parent = frame
+    
+    local box = Instance.new("TextBox")
+    box.Size = UDim2.new(0.35, 0, 0.7, 0)
+    box.Position = UDim2.new(0.6, 0, 0.15, 0)
+    box.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+    box.TextColor3 = Color3.fromRGB(255, 255, 255)
+    box.Text = tostring(defaultVal)
+    box.TextSize = 14
+    box.Font = Enum.Font.SourceSansBold
+    box.Parent = frame
+    Instance.new("UICorner", box).CornerRadius = UDim.new(0, 4)
+    
+    box.FocusLost:Connect(function()
+        local num = tonumber(box.Text)
+        if num then
+            callback(num)
+        else
+            box.Text = tostring(defaultVal)
+        end
+    end)
+end
+
+-- ตัวแปรสถานะระบบโกง
+local speedVal = 16
+local jumpVal = 50
+local isSpeedEnabled = false
+local isJumpEnabled = false
+
+-- 1. วิ่งไว & กระโดดสูง
+createInput("ความเร็ว (WalkSpeed)", 16, function(v) speedVal = v end)
+createToggle("เปิด/ปิด วิ่งไว", function(v) isSpeedEnabled = v end)
+
+createInput("กระโดดสูง (JumpPower)", 50, function(v) jumpVal = v end)
+createToggle("เปิด/ปิด กระโดดสูง", function(v) isJumpEnabled = v end)
+
+RunService.RenderStepped:Connect(function()
+    local char = LocalPlayer.Character
+    if char and char:FindFirstChild("Humanoid") then
+        if isSpeedEnabled then
+            char.Humanoid.WalkSpeed = speedVal
+        end
+        if isJumpEnabled then
+            char.Humanoid.JumpPower = jumpVal
+        end
+    end
+end)
+
+-- 2. กราฟฟิกต่ำสุด ลบทุกอย่างกันแลค
+createToggle("กราฟฟิกต่ำสุด ( Potato Graphics )", function(v)
+    if v then
+        Lighting.GlobalShadows = false
+        Lighting.FogEnd = 9e9
+        settings().Rendering.QualityLevel = Enum.QualityLevel.Level01
+        for _, obj in pairs(Workspace:GetDescendants()) do
+            if obj:IsA("BasePart") then
+                obj.Material = Enum.Material.SmoothPlastic
+                obj.Reflectance = 0
+            elseif obj:IsA("Decal") or obj:IsA("Texture") then
+                obj.Transparency = 1
+            elseif obj:IsA("ParticleEmitter") or obj:IsA("Fire") or obj:IsA("Smoke") or obj:IsA("Sparkles") then
+                obj.Enabled = false
+            end
+        end
+    else
+        Lighting.GlobalShadows = true
+        settings().Rendering.QualityLevel = Enum.QualityLevel.Automatic
+    end
+end)
+
+-- ฟังก์ชันหาศัตรูที่ใกล้ที่สุด
+local function getClosestPlayer()
+    local target = nil
+    local shortestDist = math.huge
+    local char = LocalPlayer.Character
+    if not char or not char:FindFirstChild("HumanoidRootPart") then return nil end
+    
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") and player.Character:FindFirstChild("Humanoid") and player.Character.Humanoid.Health > 0 then
+            local dist = (char.HumanoidRootPart.Position - player.Character.HumanoidRootPart.Position).Magnitude
+            if dist < shortestDist then
+                shortestDist = dist
+                target = player.Character
+            end
+        end
+    end
+    return target
+end
+
+-- 3. Auto Farming (วิ่งเข้าหาและฟาร์มเควส/ตีมอนในแมพถ้ามี)
+local isAutoFarm = false
+createToggle("Auto Farming", function(v)
+    isAutoFarm = v
+    task.spawn(function()
+        while isAutoFarm do
+            task.wait(0.5)
+            local char = LocalPlayer.Character
+            if char and char:FindFirstChild("HumanoidRootPart") then
+                local target = getClosestPlayer()
+                if target and target:FindFirstChild("HumanoidRootPart") then
+                    char.Humanoid:MoveTo(target.HumanoidRootPart.Position - Vector3.new(0, 0, 3))
+                end
+            end
+        end
+    end)
+end)
+
+-- 4. Auto Attack (โจมตีอัตโนมัติเมื่ออยู่ใกล้)
+local isAutoAttack = false
+createToggle("Auto Attack", function(v)
+    isAutoAttack = v
+    task.spawn(function()
+        while isAutoAttack do
+            task.wait(0.2)
+            local target = getClosestPlayer()
+            local char = LocalPlayer.Character
+            if target and char and char:FindFirstChild("HumanoidRootPart") then
+                local dist = (char.HumanoidRootPart.Position - target.HumanoidRootPart.Position).Magnitude
+                if dist < 8 then
+                    VirtualUser:Button1Down(Vector2.new(0,0))
+                    task.wait(0.05)
+                    VirtualUser:Button1Up(Vector2.new(0,0))
+                end
+            end
+        end
+    end)
+end)
+
+-- 5. Auto Kill (พุ่งเข้าประชิดและโจมตีต่อเนื่องอย่างรวดเร็ว)
+local isAutoKill = false
+createToggle("Auto Kill", function(v)
+    isAutoKill = v
+    task.spawn(function()
+        while isAutoKill do
+            task.wait(0.1)
+            local target = getClosestPlayer()
+            local char = LocalPlayer.Character
+            if target and char and char:FindFirstChild("HumanoidRootPart") and target:FindFirstChild("HumanoidRootPart") then
+                char.HumanoidRootPart.CFrame = target.HumanoidRootPart.CFrame * CFrame.new(0, 0, 2)
+                VirtualUser:Button1Down(Vector2.new(0,0))
+                task.wait(0.02)
+                VirtualUser:Button1Up(Vector2.new(0,0))
+            end
+        end
+    end)
+end)
+
+-- 6. ล็อคมุมกล้อง (Camera Lock) เข้าหาศัตรู
+local isLockCam = false
+createToggle("ล็อคมุมกล้อง (Lock Cam)", function(v)
+    isLockCam = v
+    RunService.RenderStepped:Connect(function()
+        if isLockCam then
+            local target = getClosestPlayer()
+            if target and target:FindFirstChild("HumanoidRootPart") then
+                Workspace.CurrentCamera.CFrame = CFrame.new(Workspace.CurrentCamera.CFrame.Position, target.HumanoidRootPart.Position)
+            end
+        end
+    end)
+end)
+
+-- 7. บล็อกอัตโนมัติ (Auto Block)
+local isAutoBlock = false
+createToggle("บล็อกอัตโนมัติ (Auto Block)", function(v)
+    isAutoBlock = v
+    task.spawn(function()
+        while isAutoBlock do
+            task.wait(0.1)
+            local char = LocalPlayer.Character
+            if char and char:FindFirstChild("HumanoidRootPart") then
+                for _, p in pairs(Players:GetPlayers()) do
+                    if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+                        local dist = (char.HumanoidRootPart.Position - p.Character.HumanoidRootPart.Position).Magnitude
+                        -- เช็คถ้าผู้เล่นอื่นอยู่ใกล้และหันหน้ามาทางเรา ให้กดปุ่ม F (ปุ่มบล็อกใน TSB)
+                        if dist < 6 then
+                            VirtualUser:KeyEvent(true, Enum.KeyCode.F, false, game)
+                            task.wait(0.3)
+                            VirtualUser:KeyEvent(false, Enum.KeyCode.F, false, game)
+                        end
+                    end
+                end
+            end
+        end
+    end)
+end)
